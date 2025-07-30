@@ -52,6 +52,14 @@ require("lazy").setup({
     { "hrsh7th/nvim-cmp" },
     { "hrsh7th/cmp-nvim-lsp" },
 
+    {
+        "windwp/nvim-autopairs",
+        event = "insertEnter",
+        config = function()
+            require("nvim-autopairs").setup({})
+        end
+    },
+
     -- Файловый менеджер
     { "nvim-tree/nvim-tree.lua" },
 })
