@@ -77,6 +77,10 @@ lspconfig.clangd.setup({
     capabilities = capabilities,
 })
 
+lspconfig.bashls.setup({
+    capabilities = capabilities
+})
+
 local cmp = require("cmp")
 local luasnip = require("luasnip")
 
