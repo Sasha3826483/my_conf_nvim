@@ -5,7 +5,7 @@
 -- == Основные настройки редактора ==
 
 -- Отображение номеров строк
-vim.opt.number = false          -- Отключить абсолютные номера строк
+vim.opt.number = true          -- Отключить абсолютные номера строк
 vim.opt.relativenumber = true   -- Включить относительные номера строк
 
 -- Настройки отступов и табуляции
@@ -55,7 +55,7 @@ require("lazy").setup({
         name = "catppuccin",
         priority = 1000, -- Установить высокий приоритет для загрузки
     },
-
+    
     -- Сниппеты
     { "L3MON4D3/LuaSnip", version = "*" }, -- Поддержка сниппетов
 
@@ -111,12 +111,148 @@ require("lazy").setup({
             require("luasnip.loaders.from_vscode").lazy_load() -- Загрузка VSCode-совместимых сниппетов
         end
     },
+
     {
         "derekwyatt/vim-fswitch", -- Переключение между .h и .cpp файлами
         config = function()
             vim.keymap.set("n", "<leader>fs", ":FSHere<CR>", { desc = "Switch between header/source" })
         end
     },
+
+{
+    "nvim-treesitter/nvim-treesitter",
+    build = ":TSUpdate",
+    config = function()
+        require("nvim-treesitter.configs").setup({
+            ensure_installed = { "c", "cpp", "lua", "python", "bash" }, -- Языки для установки
+            highlight = { enable = true }, -- Включить подсветку
+            indent = { enable = true },   -- Улучшенные отступы
+        })
+    end
+},
+
+{
+    "nvim-telescope/telescope.nvim",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    config = function()
+        local telescope = require("telescope")
+        telescope.setup({})
+        vim.keymap.set("n", "<leader>ff", ":Telescope find_files<CR>", { desc = "Find files" })
+        vim.keymap.set("n", "<leader>fg", ":Telescope live_grep<CR>", { desc = "Grep in files" })
+    end
+},
+    
+{
+    "nvim-lualine/lualine.nvim",
+    dependencies = { "nvim-tree/nvim-web-devicons" }, -- Для иконок
+    config = function()
+        require("lualine").setup({
+            options = {
+                theme = "catppuccin", -- Интеграция с вашей цветовой схемой
+                icons_enabled = true,  -- Включить иконки
+            },
+            sections = {
+                lualine_a = { "mode" },
+                lualine_b = { "branch", "diff" },
+                lualine_c = { "filename" },
+                lualine_x = { "encoding", "fileformat", "filetype" },
+                lualine_y = { "progress" },
+                lualine_z = { "location" },
+            },
+        })
+    end
+},
+
+{
+    "lewis6991/gitsigns.nvim",
+    config = function()
+        require("gitsigns").setup({
+            signs = {
+                add = { text = "+" },
+                change = { text = "~" },
+                delete = { text = "_" },
+            },
+        })
+    end
+},
+
+{
+    "numToStr/Comment.nvim",
+    config = function()
+        require("Comment").setup()
+    end
+},
+
+{
+    "mfussenegger/nvim-dap",
+    config = function()
+        local dap = require("dap")
+        -- Настройка адаптера для C/C++ (lldb)
+        dap.adapters.lldb = {
+            type = "executable",
+            command = "lldb-vscode", -- Укажите путь к lldb-vscode, если требуется
+            name = "lldb"
+        }
+        -- Конфигурация для C/C++
+        dap.configurations.cpp = {
+            {
+                name = "Launch",
+                type = "lldb",
+                request = "launch",
+                program = function()
+                    return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
+                end,
+                cwd = "${workspaceFolder}",
+                stopOnEntry = false,
+                args = {}, -- Можно добавить аргументы командной строки
+            },
+        }
+        -- Использовать ту же конфигурацию для C
+        dap.configurations.c = dap.configurations.cpp
+    end
+},
+
+{
+    "rcarriga/nvim-dap-ui",
+    dependencies = { "mfussenegger/nvim-dap", "nvim-neotest/nvim-nio" },
+    config = function()
+        require("dapui").setup()
+        -- Автоматически открывать/закрывать UI при запуске/остановке отладки
+        local dap, dapui = require("dap"), require("dapui")
+        dap.listeners.after.event_initialized["dapui_config"] = function()
+            dapui.open()
+        end
+        dap.listeners.before.event_terminated["dapui_config"] = function()
+            dapui.close()
+        end
+        dap.listeners.before.event_exited["dapui_config"] = function()
+            dapui.close()
+        end
+    end
+},
+
+{
+    "rcarriga/nvim-dap-ui",
+    dependencies = { "mfussenegger/nvim-dap" },
+    config = function()
+        require("dapui").setup()
+    end
+},
+
+{
+    "onsails/lspkind.nvim",
+    config = function()
+        require("cmp").setup({
+            formatting = {
+                format = require("lspkind").cmp_format({
+                    mode = "symbol_text", -- Показывать иконки и текст
+                    maxwidth = 50,        -- Ограничить ширину
+                }),
+            },
+        })
+    end
+}
+
 })
 
 -- Установка цветовой схемы
@@ -188,6 +324,40 @@ vim.keymap.set("n", "<leader>e", ":NvimTreeToggle<CR>", { desc = "Toggle file ex
 -- Компиляция и запуск C/C++ кода
 vim.keymap.set("n", "<leader>cc", function()
     vim.cmd("w") -- Сохранить файл
-    vim.fn.system("g++ -std=c++20 -o a.out " .. vim.fn.expand("%") .. " && ./a.out")
-    print("Compiled and ran " .. vim.fn.expand("%"))
+    local result = vim.fn.system("g++ -g -std=c++20 -o a.out " .. vim.fn.expand("%"))
+    if vim.v.shell_error == 0 then
+        vim.fn.system("./a.out")
+        print("Compile and run " .. vim.fn.expand("%"))
+    else 
+        print("Compilation failed: " .. result)
+    end
 end, { desc = "Compile and run C/C++" })
+
+vim.diagnostic.config({
+    virtual_text = false, -- Показывать диагностику в виде виртуального текста
+    signs = true,        -- Показывать знаки в столбце номеров строк
+    update_in_insert = false, -- Не обновлять диагностику в режиме вставки
+    float = { border = "rounded" }, -- Округлые границы для всплывающих окон
+})
+
+-- Привязка клавиш для навигации по диагностике
+vim.keymap.set("n", "<leader>dn", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
+vim.keymap.set("n", "<leader>dp", vim.diagnostic.goto_prev, { desc = "Previous diagnostic" })
+vim.keymap.set("n", "<leader>df", vim.diagnostic.open_float, { desc = "Show diagnostic" })
+
+vim.keymap.set("n", "<leader>cr", function()
+    vim.cmd("w")
+    vim.cmd("term g++ -g -std=c++20 -o a.out % && ./a.out")
+end, { desc = "Compile and run in terminal" })
+
+-- Привязки клавиш для DAP
+vim.keymap.set("n", "<F5>", require("dap").continue, { desc = "DAP: Start/Continue" })
+vim.keymap.set("n", "<F10>", require("dap").step_over, { desc = "DAP: Step Over" })
+vim.keymap.set("n", "<F11>", require("dap").step_into, { desc = "DAP: Step Into" })
+vim.keymap.set("n", "<F12>", require("dap").step_out, { desc = "DAP: Step Out" })
+vim.keymap.set("n", "<leader>b", require("dap").toggle_breakpoint, { desc = "DAP: Toggle Breakpoint" })
+vim.keymap.set("n", "<leader>B", function()
+    require("dap").set_breakpoint(vim.fn.input("Breakpoint condition: "))
+end, { desc = "DAP: Set Conditional Breakpoint" })
+vim.keymap.set("n", "<leader>dr", require("dap").repl.open, { desc = "DAP: Open REPL" })
+vim.keymap.set("n", "<leader>du", require("dapui").toggle, { desc = "DAP: Toggle UI" })
