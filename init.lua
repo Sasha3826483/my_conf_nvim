@@ -44,6 +44,7 @@ if not vim.loop.fs_stat(lazypath) then
         lazypath,
     })
 end
+
 vim.opt.rtp:prepend(lazypath) -- Добавить lazy.nvim в runtimepath
 
 -- == Установка и настройка плагинов ==
@@ -200,7 +201,7 @@ require("lazy").setup({
                 type = "lldb",
                 request = "launch",
                 program = function()
-                    return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
+                    return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/a.out")
                 end,
                 cwd = "${workspaceFolder}",
                 stopOnEntry = false,
